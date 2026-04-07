@@ -733,7 +733,6 @@ except NameError:
 
 _logo_paths = [
     os.path.join(_base_dir, "logo.png"),
-    "/content/drive/MyDrive/Progetti/HR Projects/Smart Working/logo.png",
     "/content/logo.png",
     "logo.png",
 ]
