@@ -85,7 +85,7 @@ L'app si aprirà automaticamente nel browser su `http://localhost:7860`.
 
 ### Su Hugging Face Spaces
 
-La versione pubblica è disponibile direttamente su [Hugging Face Spaces](https://huggingface.co/spaces) senza alcuna installazione.
+La versione pubblica è disponibile direttamente su [Hugging Face Spaces](https://huggingface.co/spaces/AndreaCapozio/smart-working-dashboard) senza alcuna installazione.
 
 ## 📁 Struttura del progetto
 
