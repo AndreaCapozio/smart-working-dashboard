@@ -93,7 +93,7 @@ La versione pubblica è disponibile direttamente su [Hugging Face Spaces](https:
 .
 ├── app.py            # Applicazione principale
 ├── requirements.txt  # Dipendenze Python
-├── README.md         # Questo file
+├── README.md
 ├── LICENSE           # Licenza Apache 2.0
 └── logo.png          # Logo (sidebar)
 ```
