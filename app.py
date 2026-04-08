@@ -101,7 +101,7 @@ def get_route_osm(lat1, lon1, lat2, lon2, vehicle: str):
         pass
     return 0.0, 0.0
 
-def get_route_gmaps(start_addr, end_addr, vehicle, api_key, dep_time_str):
+def get_route_gmaps(start_addr, end_addr, vehicle, api_key, dep_day_str, dep_time_str):
     """
     Calcola durata (minuti) e distanza (km) tramite Google Maps Directions API.
     start_addr e end_addr possono essere stringhe o liste: viene estratto sempre il primo elemento.
@@ -122,14 +122,31 @@ def get_route_gmaps(start_addr, end_addr, vehicle, api_key, dep_time_str):
         mode = "transit"
 
     now = datetime.datetime.now()
+
+    giorni_settimana = {
+        "Lunedì": 0,
+        "Martedì": 1,
+        "Mercoledì": 2,
+        "Giovedì": 3,
+        "Venerdì": 4,
+        "Sabato": 5,
+        "Domenica": 6,
+        }
+        
     try:
-        h, m = map(int, dep_time_str.split(":"))
-        dep = now.replace(hour=h, minute=m, second=0, microsecond=0)
-        if dep < now:
-            dep += datetime.timedelta(days=1)
-        dep_ts = int(dep.timestamp())
+      h, m = map(int, dep_time_str.split(":"))
+      target_weekday = giorni_settimana[dep_day_str]
+
+      days_ahead = target_weekday - now.weekday()
+      if days_ahead < 0 or (days_ahead == 0 and (h, m) <= (now.hour, now.minute)):
+        days_ahead += 7
+
+      dep = now + datetime.timedelta(days=days_ahead)
+      dep = dep.replace(hour=h, minute=m, second=0, microsecond=0)
+
+      dep_ts = int(dep.timestamp())
     except Exception:
-        dep_ts = "now"
+      dep_ts = "now"
 
     url = (
         f"https://maps.googleapis.com/maps/api/directions/json"
@@ -475,7 +492,7 @@ def save_profile(w_d, p_a, h_w, wk, dig, aut, inter, pres, sync):
 # CALCOLO SPOSTAMENTI E TRASPORTI
 # ─────────────────────────────────────────────
 
-def calc_transport(n, df_t, api_choice, gmaps_key, dep_time, *args):
+def calc_transport(n, df_t, api_choice, gmaps_key, dep_day, dep_time, *args):
     """
     Calcola costi, emissioni e durata degli spostamenti casa-lavoro.
     args layout per tratta (6 elementi × max 4 tratte):
@@ -528,7 +545,7 @@ def calc_transport(n, df_t, api_choice, gmaps_key, dep_time, *args):
                 return gr.update(), "⚠️ Inserisci la API Key di Google Maps."
             # Google Maps richiede la stringa leggibile, non le coordinate
             dur, dist = get_route_gmaps(
-                clean_addr_str(start), clean_addr_str(end), vehicle, gmaps_key, dep_time
+                clean_addr_str(start), clean_addr_str(end), vehicle, gmaps_key, dep_day, dep_time
             )
 
         r_df     = df_t.loc[df_t["Mezzo"] == vehicle]
@@ -734,7 +751,8 @@ except NameError:
 _logo_paths = [
     os.path.join(_base_dir, "logo.png"),
     "/content/logo.png",
-    "logo.png",
+    "./logo.png",
+    "logo.png"
 ]
 _logo = next((_p for _p in _logo_paths if os.path.exists(_p)), None)
 
@@ -757,7 +775,8 @@ with gr.Blocks(title="Smart Working Dashboard") as demo:
         # ── SIDEBAR ──────────────────────────────────────────────────────────
         with gr.Column(scale=1, min_width=250):
             if _logo:
-                gr.Image(value=_logo, label="", show_label=False, container=False, height=200)
+                gr.Image(value=_logo, label="", show_label=False,
+                         show_download_button=False, container=False, height=200)
 
             gr.Markdown("### Monitor Sezioni")
             st_p = gr.Textbox("❌ Incompleta", label="Profilo Lavorativo",      interactive=False)
@@ -856,12 +875,22 @@ I dati inseriti non vengono memorizzati. Le uniche chiamate esterne sono OpenStr
                         label="Provider Mappe (Calcolo Percorso)"
                     )
                     gmaps_key = gr.Textbox(visible=False, label="Google Maps API Key", type="password")
+                    dep_day   = gr.Dropdown(
+                        choices=["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"],
+                        value="Lunedì",
+                        visible=False,
+                        label="Giorno partenza"
+                        )
                     dep_time  = gr.Textbox(visible=False, label="Orario partenza (HH:MM)", value="08:00")
                     api_choice.change(
-                        lambda x: [gr.update(visible=x == "Google Maps"), gr.update(visible=x == "Google Maps")],
+                        lambda x: [
+                            gr.update(visible=x == "Google Maps"),
+                            gr.update(visible=x == "Google Maps"),
+                            gr.update(visible=x == "Google Maps")
+                            ],
                         inputs=api_choice,
-                        outputs=[gmaps_key, dep_time]
-                    )
+                        outputs=[gmaps_key, dep_day, dep_time]
+                        )
                     gr.HTML("""
 <div style="
   background-color:#FFF8E1;
@@ -925,7 +954,7 @@ I dati inseriti non vengono memorizzati. Le uniche chiamate esterne sono OpenStr
 
                     c_t.click(
                         calc_transport,
-                        [n_l, settings_transport_state, api_choice, gmaps_key, dep_time] + l_i,
+                        [n_l, settings_transport_state, api_choice, gmaps_key, dep_day, dep_time] + l_i,
                         [transport_state, t_o]
                     ).then(
                         process_results,
