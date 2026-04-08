@@ -757,8 +757,7 @@ with gr.Blocks(title="Smart Working Dashboard") as demo:
         # ── SIDEBAR ──────────────────────────────────────────────────────────
         with gr.Column(scale=1, min_width=250):
             if _logo:
-                gr.Image(value=_logo, label="", show_label=False,
-                         show_download_button=False, container=False, height=200)
+                gr.Image(value=_logo, label="", show_label=False, container=False, height=200)
 
             gr.Markdown("### Monitor Sezioni")
             st_p = gr.Textbox("❌ Incompleta", label="Profilo Lavorativo",      interactive=False)
